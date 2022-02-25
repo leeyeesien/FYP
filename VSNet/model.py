@@ -1,8 +1,10 @@
+from cv2 import QT_NEW_BUTTONBAR, norm
 import torch
 import torch.nn as nn
 import torchvision.models as models
 import transformations as T
 import numpy as np
+import roma
 
 def loss_quat(output, target):
     # compute rmse for translation
@@ -17,27 +19,55 @@ def combined_loss_quat(device, output, target, weights=[1 / 2, 1 / 2]):
 
     # normalize quaternions
     normalized_quat = output[:, 3:] / torch.sqrt(torch.sum(output[:, 3:] ** 2, dim=1, keepdim=True))
-
-    # # compute rmse for rotation
-    # quat_rmse = torch.sqrt(torch.mean((normalized_quat - target[:, 3:]) ** 2, dim=1))
-
-    normalized_quat = normalized_quat.cpu().detach().numpy()
-    target = target.cpu().detach().numpy()
     
     # new quat error
-    rot_errors=[]
+    rot_errors_torch_list = []
     for i in range(normalized_quat.shape[0]):
         q2=target[i, 3:]
-        if normalized_quat[i].dot(q2)<0:
-            normalized_quat[i]=-normalized_quat[i]
-        quat_inv=T.quaternion_inverse(normalized_quat[i])
-        quat_error=T.quaternion_multiply(q2, quat_inv)
-        axis, angle, _ =T.rotation_from_matrix(T.quaternion_matrix(quat_error))
-        rot_errors.append(np.linalg.norm(axis*angle))
-    rot_errors=torch.Tensor(rot_errors)
-    rot_errors=rot_errors.to(device)
+        q2_xyzw = torch.empty(4)
+        q2_xyzw[0] = q2[1]
+        q2_xyzw[1] = q2[2]
+        q2_xyzw[2] = q2[3]
+        q2_xyzw[3] = q2[0]
 
-    return torch.mean(weights[0] * trans_rmse + weights[1] * rot_errors)
+        if torch.dot(normalized_quat[i], q2) < 0:
+            normalized_quat[i] = -normalized_quat[i]
+
+        normalized_quat_xyzw = torch.empty(4)
+        normalized_quat_xyzw[0] = normalized_quat[i][1]
+        normalized_quat_xyzw[1] = normalized_quat[i][2]    
+        normalized_quat_xyzw[2] = normalized_quat[i][3]    
+        normalized_quat_xyzw[3] = normalized_quat[i][0]    
+
+        quat_inv_xyzw=roma.quat_inverse(normalized_quat_xyzw)
+        quat_error_xyzw=roma.quat_product(q2_xyzw, quat_inv_xyzw)
+
+        quat_error_wxyz = torch.empty(4)
+        quat_error_wxyz[0] = quat_error_xyzw[3]
+        quat_error_wxyz[1] = quat_error_xyzw[0]
+        quat_error_wxyz[2] = quat_error_xyzw[1]
+        quat_error_wxyz[3] = quat_error_xyzw[2]
+
+        if quat_error_wxyz[0] > 1.0:
+            quat_error_wxyz[0] = 1.0
+        elif quat_error_wxyz[0] < -1.0:
+            quat_error_wxyz[0] = -1.0
+
+        den = torch.sqrt(1.0 - quat_error_wxyz[0] * quat_error_wxyz[0])
+        zero_tensor = torch.empty(1)
+        if torch.isclose(den, zero_tensor):
+            rot_errors_torch = torch.zeros(3)
+        else:
+            rot_errors_torch = (quat_error_wxyz[1:] * 2.0 * torch.acos(quat_error_wxyz[0])) / den
+
+        rot_errors_torch_list.append(rot_errors_torch)
+        rot_errors_tensor = torch.stack(rot_errors_torch_list)
+
+        # compute rmse for rotation
+        quat_rmse = torch.sqrt(torch.mean((rot_errors_tensor) ** 2, dim=1))
+    
+    quat_rmse = quat_rmse.to(device)
+    return torch.mean(weights[0] * trans_rmse + weights[1] * quat_rmse)
 
 
 def tf_dist_loss(output, target, device, unit_length=0.1):

@@ -19,7 +19,7 @@ from transformations import angle_between_vectors, euler_from_quaternion
 
 import os.path
 
-model_name = 'YS_VSNet-train_10cm_square_24022022-200^2*20'
+model_name = 'YS_VSNet-train_10cm_square_25022022-200^2*20'
 model_pretrained = None
 num_classes = 7
 
@@ -47,7 +47,7 @@ gamma = 0.5
 momentum = 0.9
 # gamma = 0.3
 limits = None
-weights = [0.99, 0.01]
+weights = [1, 0.06]
 
 mode = ('train', 'train')  # train train set
 # mode = ('eval', 'train')  # eval train set
