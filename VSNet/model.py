@@ -18,8 +18,8 @@ def combined_loss_quat(device, output, target, weights=[1 / 2, 1 / 2]):
     trans_rmse = torch.sqrt(torch.mean((output[:, :3] - target[:, :3]) ** 2, dim=1))
 
     # normalize quaternions
-    normalized_quat = output[:, 3:] / torch.sqrt(torch.sum(output[:, 3:] ** 2, dim=1, keepdim=True))
-    
+    normalized_quat = output[:, 3:] / torch.sqrt(torch.sum(output[:, 3:] ** 2, dim=1, keepdim=True)) 
+
     # new quat error
     rot_errors_torch_list = []
     for i in range(normalized_quat.shape[0]):
@@ -55,7 +55,7 @@ def combined_loss_quat(device, output, target, weights=[1 / 2, 1 / 2]):
 
         den = torch.sqrt(1.0 - quat_error_wxyz[0] * quat_error_wxyz[0])
         zero_tensor = torch.empty(1)
-        if torch.isclose(den, zero_tensor):
+        if torch.isclose(den, zero_tensor, atol=.001):
             rot_errors_torch = torch.zeros(3)
         else:
             rot_errors_torch = (quat_error_wxyz[1:] * 2.0 * torch.acos(quat_error_wxyz[0])) / den
@@ -63,9 +63,8 @@ def combined_loss_quat(device, output, target, weights=[1 / 2, 1 / 2]):
         rot_errors_torch_list.append(rot_errors_torch)
         rot_errors_tensor = torch.stack(rot_errors_torch_list)
 
-        # compute rmse for rotation
-        quat_rmse = torch.sqrt(torch.mean((rot_errors_tensor) ** 2, dim=1))
-    
+    # compute rmse for rotation
+    quat_rmse = torch.sqrt(torch.mean((rot_errors_tensor) ** 2, dim=1))
     quat_rmse = quat_rmse.to(device)
     return torch.mean(weights[0] * trans_rmse + weights[1] * quat_rmse)
 
