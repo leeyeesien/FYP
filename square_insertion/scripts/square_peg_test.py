@@ -28,18 +28,18 @@ def print_log(msg):
 def move_to_random_pose(pose_id):
     print_log("Moving to random position: T_0{}".format(pose_id))
 
-    r = random.uniform(math.radians(-2.5), math.radians(2.5))
-    p = random.uniform(math.radians(-2.5), math.radians(2.5))
-    y = random.uniform(math.radians(-5), math.radians(5))
+    r = random.uniform(math.radians(-5), math.radians(5))
+    p = random.uniform(math.radians(-5), math.radians(5))
+    y = random.uniform(math.radians(-10), math.radians(10))
     eef_TCEi_rot_mat = T.euler2mat([r, p, y])
     eef_TCEi_quat = T.mat2quat(eef_TCEi_rot_mat)
     desired_T0Ei_quat = T.quat_multiply(eef_T0C_quat, eef_TCEi_quat)
     print_log("\nroll: {}". format(math.degrees(r)) +
             "  pitch: {}".format(math.degrees(p)) + "  yaw: {}".format(math.degrees(y)))
 
-    x = random.uniform(-0.0025, 0.0025)
-    y = random.uniform(-0.0025, 0.0025)
-    z = random.uniform(0, 0.005)
+    x = random.uniform(-0.005, 0.005)
+    y = random.uniform(-0.005, 0.005)
+    z = random.uniform(0, 0.01)
     print_log("\nx: {}".format(x) + "  y: {}".format(y) + "  z: {}".format(z))
 
     robot.move_to_pose_request(
@@ -74,19 +74,8 @@ def move_to_random_pose(pose_id):
 
 
 def get_relative_pose_T_BA(model, img_A_name, img_B_name, device, img_A, img_B):
-
-    # Find T_BA
-    
     img_A = cv2.imread(os.path.dirname(__file__) + '/../model_testing_data/img/' + img_A_name + '.png')
     img_B = cv2.imread(os.path.dirname(__file__) + '/../model_testing_data/img/' + img_B_name + '.png')
-
-    # Convert img color from BGR to RGB before converting from mat image to PIL
-    # img_A = cv2.cvtColor(img_A, cv2.COLOR_BGR2RGB)
-    # img_B = cv2.cvtColor(img_B, cv2.COLOR_BGR2RGB)
-
-    # # Convert mat image to PIL
-    # img_A = Image.fromarray(img_A)
-    # img_B = Image.fromarray(img_B)
 
     # Convert OpenCV image to Tensor of type float32
     img_transform = transforms.Compose([
@@ -145,7 +134,7 @@ if __name__ == "__main__":
         target_pos=[beginning_pos[0], beginning_pos[1], 0.32],    # go to T0 (10 cm above hole),
         linear_speed=0.1,
         rotation_speed=0.4,
-        max_duration=5
+        max_duration=10
     )
 
     eef_T0C_pos = robot.eef_pos
@@ -191,10 +180,8 @@ if __name__ == "__main__":
             elif T_0A_est_rpy[i] < -math.pi:
                 T_0A_est_rpy[i] += (2 * math.pi)
 
-
         print("T_0A_ref_rpy: \n{}\n".format(T_0A_ref_rpy))
         print("T_0A_est_rpy: \n{}\n".format(T_0A_est_rpy))
-
 
         T_0A_roll_error = np.rad2deg(np.abs(T_0A_est_rpy[0] - T_0A_ref_rpy[0]))
         if T_0A_roll_error > 180:
@@ -218,7 +205,6 @@ if __name__ == "__main__":
 
         # get achieved_T_0A_pos_quat_est and compare it to T_0A_pos_quat_est, the difference is controller error
         # controller position error
-        
         controller_x_error = np.abs(achieved_T_0A_pos_est[0] - T_0A_pos_est[0]) * 1000
         controller_y_error = np.abs(achieved_T_0A_pos_est[1] - T_0A_pos_est[1]) * 1000
         controller_z_error = np.abs(achieved_T_0A_pos_est[2] - T_0A_pos_est[2]) * 1000
