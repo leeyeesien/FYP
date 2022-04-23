@@ -34,7 +34,7 @@ if __name__ == "__main__":
 
     # go to goal pose
     robot.move_to_pose_request(
-    target_pos=[starting_eef_pos[0], starting_eef_pos[1], 0.325],    
+    target_pos=[starting_eef_pos[0], starting_eef_pos[1], 0.32],    
     target_quat=starting_eef_quat,
     linear_speed=0.1,
     rotation_speed=0.4,
@@ -83,10 +83,10 @@ if __name__ == "__main__":
 
         T_BA_pos, T_BA_quat = model_estimation.get_relative_pose_T_BA(model, "A(ref:T_0A)_i_0".format(i), "B(test:T_0B)_i_{}".format(i), device, image_T_0A_ref, image_T_0B)
 
-        quat_Bold_B = T.axisangle2quat([0, 0, 1.08])
-        quat_B_Bold = T.quat_inverse(quat_Bold_B)
-        rot_mat_B_Bold = T.quat2rotation(quat_B_Bold)
-        T_BA_pos = np.matmul(rot_mat_B_Bold, T_BA_pos.transpose())
+        # quat_Bold_B = T.axisangle2quat([0, 0, 1.08])
+        # quat_B_Bold = T.quat_inverse(quat_Bold_B)
+        # rot_mat_B_Bold = T.quat2rotation(quat_B_Bold)
+        # T_BA_pos = np.matmul(rot_mat_B_Bold, T_BA_pos.transpose())
 
         T_0A_pos_est, T_0A_quat_est = T.multiply_pose(T_0B_pos, T_0B_quat, T_BA_pos, T_BA_quat)
         utilities.print_log("Estimated T_0A_pos: \n{}; \nEstimated T_0A_quat: \n{}".format(T_0A_pos_est, T_0A_quat_est))
@@ -148,13 +148,16 @@ if __name__ == "__main__":
             Tgoal_est[2] = contact_eef_pos[2]
             Tgoal_est[3:] = T_0A_quat_est
 
-            for j in range(10):
+            for j in range(30):
                 success, time = robot.insert_by_admittance_request(
                 admittance_gain = [0, 0, 0] + [0.15]*3, # good translational
                 target_pos=[0, 0, 0],
                 max_duration=1,
                 target_force=[0, 0, -15, 0, 0, 0],
                 )
+
+                updated_insertion_pose = robot.eef_pos
+                updated_insertion_quat = robot.eef_quat
 
                 check_x_success = False
                 check_y_success = False
@@ -165,7 +168,7 @@ if __name__ == "__main__":
                 check_x_success, check_x_time = robot.move_to_contact_request(
                 direction=[1, 0, 0, 0, 0, 0],
                 speed=0.01,
-                force_thresh=10,
+                force_thresh=5,
                 max_duration=1,
                 )
 
@@ -174,7 +177,7 @@ if __name__ == "__main__":
                     check_y_success, check_y_time = robot.move_to_contact_request(
                     direction=[0, 1, 0, 0, 0, 0],
                     speed=0.01,
-                    force_thresh=10,
+                    force_thresh=5,
                     max_duration=1,
                     )
 
@@ -183,15 +186,14 @@ if __name__ == "__main__":
                         check_z_success, check_z_time = robot.move_to_contact_request(
                         direction=[0, 0, -1, 0, 0, 0],
                         speed=0.01,
-                        force_thresh=10,
+                        force_thresh=5,
                         max_duration=1,
                         )
 
-                if (check_x_success and check_y_success and check_z_success is True):
+                if ((check_x_success and check_y_success and check_z_success is True) and (robot.eef_pos[2]-starting_eef_pos[2]) < 0.004):
                     utilities.print_log("Successful insertion!")
                     success_count += 1
                     utilities.print_log(f'Success rate: {success_count}/{i+1}')
-                    pre_align_end = mytime.time()
                     pre_align_time = pre_align_end - pre_align_start
                     pre_align_time_list[i] += pre_align_time
                     insertion_time = j+1
@@ -205,10 +207,9 @@ if __name__ == "__main__":
                     utilities.print_log(f'Total time list: {total_time_list}')
                     break
                 else:
-                    if (j == 9):
+                    if (j == 29):
                         utilities.print_log("Unsuccessful insertion!")
                         utilities.print_log(f'Success rate: {success_count}/{i+1}')
-                        pre_align_end = mytime.time()
                         pre_align_time = pre_align_end - pre_align_start
                         pre_align_time_list[i] += pre_align_time
                         insertion_time = j+1
@@ -220,7 +221,14 @@ if __name__ == "__main__":
                         utilities.print_log(f'Pre-alignment time list: {pre_align_time_list}')
                         utilities.print_log(f'Insertion time list: {insertion_time_list}')
                         utilities.print_log(f'Total time list: {total_time_list}')
-                    continue
+                    else:
+                        robot.move_to_pose_request(
+                        target_pos=updated_insertion_pose,    
+                        target_quat=updated_insertion_quat,
+                        linear_speed=0.1,
+                        rotation_speed=0.4,
+                        max_duration=5
+                        )
                 
     utilities.print_log(f'Success rate: {success_count}/50')
     average_model_est_error = np.array(model_est_error)/50

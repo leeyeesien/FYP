@@ -36,7 +36,7 @@ if __name__ == "__main__":
 
     # Go to goal pose
     robot.move_to_pose_request(
-    target_pos=[starting_eef_pos[0], starting_eef_pos[1], 0.325],    # go to T0 (10 cm above hole)
+    target_pos=[starting_eef_pos[0], starting_eef_pos[1], 0.325],
     target_quat=starting_eef_quat,
     linear_speed=0.1,
     rotation_speed=0.4,
@@ -84,10 +84,10 @@ if __name__ == "__main__":
 
         T_BA_pos, T_BA_quat = model_estimation.get_relative_pose_T_BA(model, "A(ref:T_0A)_i_0".format(i), "B(test:T_0B)_i_{}".format(i), device, image_T_0A_ref, image_T_0B)
 
-        quat_Bold_B = T.axisangle2quat([0, 0, 1.08])
-        quat_B_Bold = T.quat_inverse(quat_Bold_B)
-        rot_mat_B_Bold = T.quat2rotation(quat_B_Bold)
-        T_BA_pos = np.matmul(rot_mat_B_Bold, T_BA_pos.transpose())
+        # quat_Bold_B = T.axisangle2quat([0, 0, 1.08])
+        # quat_B_Bold = T.quat_inverse(quat_Bold_B)
+        # rot_mat_B_Bold = T.quat2rotation(quat_B_Bold)
+        # T_BA_pos = np.matmul(rot_mat_B_Bold, T_BA_pos.transpose())
 
         T_0A_pos_est, T_0A_quat_est = T.multiply_pose(T_0B_pos, T_0B_quat, T_BA_pos, T_BA_quat)
         utilities.print_log("Estimated T_0A_pos: \n{}; \nEstimated T_0A_quat: \n{}".format(T_0A_pos_est, T_0A_quat_est))
@@ -173,7 +173,7 @@ if __name__ == "__main__":
                     max_duration=1,
                     ) 
 
-            if (check_x_success and check_y_success and check_z_success is True):
+            if ((check_x_success and check_y_success and check_z_success is True) and (robot.eef_pos[2]-starting_eef_pos[2]) < 0.004):
                 insertion_time = 0
                 insertion_success = True
             else:

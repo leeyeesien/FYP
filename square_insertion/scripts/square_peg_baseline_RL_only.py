@@ -120,7 +120,7 @@ if __name__ == "__main__":
                     max_duration=1,
                     )
 
-            if (check_x_success and check_y_success and check_z_success is True):
+            if ((check_x_success and check_y_success and check_z_success is True) and (robot.eef_pos[2]-starting_eef_pos[2]) < 0.004):
                 insertion_success = True
             else:
                 # Insert reinforcement learning manipulation primitives

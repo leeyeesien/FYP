@@ -15,10 +15,8 @@ import cv2
 import time
 import os.path
 
-file = "/../logs_ins_exe/log_msgs_{}.txt".format(datetime.now())
+file = "/../logs/log_msgs_{}.txt".format(datetime.now())
 i = 0
-CAMERA_ID = 0
-# CAMERA_ID = 2
 
 class InsertionMotions:
     def __init__(self) -> None:
@@ -28,18 +26,18 @@ class InsertionMotions:
         utils = Utilities()
         utils.print_log("Moving to random position: T_0{}".format(pose_id))
 
-        r = random.uniform(math.radians(-5), math.radians(5))
-        p = random.uniform(math.radians(-5), math.radians(5))
-        y = random.uniform(math.radians(-10), math.radians(10))
+        r = random.uniform(math.radians(-10), math.radians(10))
+        p = random.uniform(math.radians(-10), math.radians(10))
+        y = random.uniform(math.radians(-20), math.radians(20))
         eef_TAEi_rot_mat = T.euler2mat([r, p, y])
         eef_TAEi_quat = T.mat2quat(eef_TAEi_rot_mat)
         desired_T0Ei_quat = T.quat_multiply(T_0A_quat_ref, eef_TAEi_quat)
         utils.print_log("\nroll: {}". format(math.degrees(r)) +
                 "  pitch: {}".format(math.degrees(p)) + "  yaw: {}".format(math.degrees(y)))
 
-        x = random.uniform(-0.005, 0.005)
-        y = random.uniform(-0.005, 0.005)
-        z = random.uniform(-0.005, 0.005)
+        x = random.uniform(-0.01, 0.01)
+        y = random.uniform(-0.01, 0.01)
+        z = random.uniform(-0.01, 0.01)
         utils.print_log("\nx: {}".format(x) + "  y: {}".format(y) + "  z: {}".format(z))
 
         self.robot.move_to_pose_request(
@@ -63,7 +61,7 @@ class InsertionMotions:
         image = utils.capture_image(pose_id)
 
         utils.print_log("T_0{}\n".format(pose_id) + str(random_T[:-1]))
-        file1 = open(os.path.dirname(__file__) + "/../ins_exe_data/label/" + pose_id + ".text", "w")
+        file1 = open(os.path.dirname(__file__) + "/../model_testing_data/label/" + pose_id + ".text", "w")
 
         if pose_id[0] == "A":
             T_0A = ' '.join([str(elem) for elem in random_T[0:7]])
@@ -108,7 +106,7 @@ class InsertionMotions:
         utils.print_log("\nend-effector T_0{} random rot_matrix: \n{}".format(pose_id, T.quat2rotation(random_T[3:])))
         
         utils.print_log("T_0{}\n".format(pose_id) + str(random_T[:-1]))
-        file1 = open(os.path.dirname(__file__) + "/../ins_exe_data/label/" + pose_id + ".text", "w")
+        file1 = open(os.path.dirname(__file__) + "/../model_testing_data/label/" + pose_id + ".text", "w")
 
         if pose_id[0] == "A":
             T_0A = ' '.join([str(elem) for elem in random_T[0:7]])
@@ -118,62 +116,6 @@ class InsertionMotions:
             T_0B = ' '.join([str(elem) for elem in random_T[0:7]])
             print(T_0B, file=file1) 
             return random_T[0:3], random_T[3:7]   
-
-    def move_to_big_sampling_error(self, T_0A_pos_ref, T_0A_quat_ref, pose_id):
-        utils = Utilities()
-        utils.print_log("Moving to random position: T_0{}".format(pose_id))
-
-        # r = random.uniform(math.radians(-5), math.radians(5))
-        # p = random.uniform(math.radians(-5), math.radians(5))
-        # y = random.uniform(math.radians(-10), math.radians(10))
-        r = 10
-        p = 10
-        y = 20
-        eef_TAEi_rot_mat = T.euler2mat([r, p, y])
-        eef_TAEi_quat = T.mat2quat(eef_TAEi_rot_mat)
-        desired_T0Ei_quat = T.quat_multiply(T_0A_quat_ref, eef_TAEi_quat)
-        utils.print_log("\nroll: {}". format(math.degrees(r)) +
-                "  pitch: {}".format(math.degrees(p)) + "  yaw: {}".format(math.degrees(y)))
-
-        # x = random.uniform(-0.005, 0.005)
-        # y = random.uniform(-0.005, 0.005)
-        # z = random.uniform(-0.005, 0.005)
-        x = 0.01
-        y = 0.01
-        z = 0.01
-        utils.print_log("\nx: {}".format(x) + "  y: {}".format(y) + "  z: {}".format(z))
-
-        self.robot.move_to_pose_request(
-            # random eef position, with new pose origin within a vertical cylinder with r=5 mm & h=10 mm, with the default pose T_0 frame origin at the center of the bottom of the cylinder
-            target_pos=T_0A_pos_ref + [x, y, z],
-            target_quat=desired_T0Ei_quat,
-            linear_speed=0.1,
-            rotation_speed=0.4,
-            max_duration=5
-        )
-
-        random_T = []
-        random_T[:3] = self.robot.eef_pos
-        random_T[3:] = self.robot.eef_quat
-        utils.print_log("\nend-effector T_0{} random translation: \n{}".format(pose_id, random_T[:3]))
-        utils.print_log("\nend-effector T_0{} random rot_matrix: \n{}".format(pose_id, T.quat2rotation(random_T[3:])))
-        
-        pre_align_start = mytime.time()
-
-        utils.print_log("Taking picture {}...".format(pose_id))
-        image = utils.capture_image(pose_id)
-
-        utils.print_log("T_0{}\n".format(pose_id) + str(random_T[:-1]))
-        file1 = open(os.path.dirname(__file__) + "/../ins_exe_data/label/" + pose_id + ".text", "w")
-
-        if pose_id[0] == "A":
-            T_0A = ' '.join([str(elem) for elem in random_T[0:7]])
-            print(T_0A, file=file1)
-            return image, random_T[0:3], random_T[3:7], pre_align_start
-        elif pose_id[0] == "B":
-            T_0B = ' '.join([str(elem) for elem in random_T[0:7]])
-            print(T_0B, file=file1) 
-            return image, random_T[0:3], random_T[3:7], pre_align_start
 
     def move_to_T_0A_est(self, est_pos, est_quat):
         self.robot.move_to_pose_request(
@@ -193,8 +135,8 @@ class ModelEstimation:
 
         # Find T_BA
         
-        img_A = cv2.imread(os.path.dirname(__file__) + '/../ins_exe_data/img/' + img_A_name + '.png')
-        img_B = cv2.imread(os.path.dirname(__file__) + '/../ins_exe_data/img/' + img_B_name + '.png')
+        img_A = cv2.imread(os.path.dirname(__file__) + '/../model_testing_data/img/' + img_A_name + '.png')
+        img_B = cv2.imread(os.path.dirname(__file__) + '/../model_testing_data/img/' + img_B_name + '.png')
             
         # Convert OpenCV image to Tensor of type float32
         img_transform = transforms.Compose([
@@ -240,7 +182,7 @@ class Utilities:
         return x_error, y_error, z_error, np.abs(roll_error), np.abs(pitch_error), np.abs(yaw_error)
 
     def capture_image(self, image_id):
-        camera = cv2.VideoCapture(CAMERA_ID)
+        camera = cv2.VideoCapture(2)
         delta = 0
         previous = time.time()
         while True:
@@ -257,7 +199,7 @@ class Utilities:
             if delta > 1:
                 # Operations on image
                 # Reset the time counter
-                cv2.imwrite(os.path.dirname(__file__) + '/../ins_exe_data/img/'+ str(image_id) +'.png', img)
+                cv2.imwrite(os.path.dirname(__file__) + '/../model_testing_data/img/'+ str(image_id) +'.png', img)
                 delta = 0
                 camera.release()
                 cv2.destroyAllWindows() 
