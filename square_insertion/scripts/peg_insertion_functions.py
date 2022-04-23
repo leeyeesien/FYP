@@ -17,8 +17,8 @@ import os.path
 
 file = "/../logs_ins_exe/log_msgs_{}.txt".format(datetime.now())
 i = 0
-CAMERA_ID = 0
-# CAMERA_ID = 2
+# CAMERA_ID = 0
+CAMERA_ID = 2
 
 class InsertionMotions:
     def __init__(self) -> None:
@@ -126,9 +126,9 @@ class InsertionMotions:
         # r = random.uniform(math.radians(-5), math.radians(5))
         # p = random.uniform(math.radians(-5), math.radians(5))
         # y = random.uniform(math.radians(-10), math.radians(10))
-        r = 10
-        p = 10
-        y = 20
+        r = math.radians(-20)
+        p = math.radians(-20)
+        y = math.radians(-40)
         eef_TAEi_rot_mat = T.euler2mat([r, p, y])
         eef_TAEi_quat = T.mat2quat(eef_TAEi_rot_mat)
         desired_T0Ei_quat = T.quat_multiply(T_0A_quat_ref, eef_TAEi_quat)
@@ -138,9 +138,9 @@ class InsertionMotions:
         # x = random.uniform(-0.005, 0.005)
         # y = random.uniform(-0.005, 0.005)
         # z = random.uniform(-0.005, 0.005)
-        x = 0.01
-        y = 0.01
-        z = 0.01
+        x = -0.02
+        y = -0.02
+        z = -0.02
         utils.print_log("\nx: {}".format(x) + "  y: {}".format(y) + "  z: {}".format(z))
 
         self.robot.move_to_pose_request(
